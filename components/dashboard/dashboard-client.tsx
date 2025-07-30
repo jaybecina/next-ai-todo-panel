@@ -13,12 +13,25 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { InvoiceTutorial } from "@/components/tutorial/todo-ai-tutorial";
+import { TodoAreaChart } from "@/components/dashboard/todo-area-chart";
 import { supabase } from "@/lib/supabase/client";
 import type { User as TUser } from "@supabase/supabase-js";
 import { LogOut, User as UserIcon, FileText } from "lucide-react";
 import { toast } from "sonner";
 
 export function DashboardClient() {
+  // Example todo chart data (replace with real data as needed)
+  const todoChartData = [
+    { date: "2025-07-01", completed: 5, pending: 3 },
+    { date: "2025-07-02", completed: 7, pending: 2 },
+    { date: "2025-07-03", completed: 6, pending: 4 },
+    { date: "2025-07-04", completed: 8, pending: 1 },
+    { date: "2025-07-05", completed: 10, pending: 0 },
+    { date: "2025-07-06", completed: 9, pending: 2 },
+    { date: "2025-07-07", completed: 11, pending: 1 },
+  ];
+
+  const [timeRange, setTimeRange] = useState("7d");
   const [user, setUser] = useState<TUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<string>("dashboard");
@@ -27,28 +40,35 @@ export function DashboardClient() {
 
   useEffect(() => {
     checkUser();
+
+    // Listen for auth changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session?.user) {
+        setUser(session.user);
+        router.push("/");
+      } else {
+        setUser(null);
+        router.push("/auth");
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const checkUser = async () => {
-    try {
-      setLoading(true);
-      const {
-        data: { user },
-        error,
-      } = await supabase.auth.getUser();
-
-      if (error || !user) {
-        router.push("/");
-        return;
-      }
-
+    setLoading(true);
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (user) {
       setUser(user);
-    } catch (error) {
-      console.error("Error checking user:", error);
-      router.push("/");
-    } finally {
-      setLoading(false);
+    } else {
+      setUser(null);
+      router.push("/auth");
     }
+    setLoading(false);
   };
 
   const handleLogout = async () => {
@@ -58,7 +78,7 @@ export function DashboardClient() {
         toast.error(error.message);
       } else {
         toast.success("Logged out successfully");
-        router.push("/");
+        router.push("/auth");
       }
     } catch (error) {
       console.error("Logout error:", error);
@@ -82,7 +102,7 @@ export function DashboardClient() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="h-[90vh] bg-background">
       {/* Header */}
       <header className="border-b bg-card">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
@@ -109,12 +129,12 @@ export function DashboardClient() {
             </TabsTrigger>
           </TabsList>
           <TabsContent value="dashboard">
-            {/* You can add dashboard charts and summary here */}
             <div className="max-w-4xl mx-auto">
-              {/* Dashboard content here */}
-              <div className="text-muted-foreground">
-                Dashboard content coming soon...
-              </div>
+              <TodoAreaChart
+                data={todoChartData}
+                timeRange={timeRange}
+                setTimeRange={setTimeRange}
+              />
             </div>
           </TabsContent>
           <TabsContent value="todos">
