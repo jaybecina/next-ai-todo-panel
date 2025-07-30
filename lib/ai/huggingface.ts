@@ -13,7 +13,7 @@ export class AIService {
   private static async generateResponse(prompt: string): Promise<string> {
     try {
       const response = await hf.textGeneration({
-        model: "google/flan-t5-base",
+        model: "gpt2",
         inputs: prompt,
         parameters: {
           max_new_tokens: 200,

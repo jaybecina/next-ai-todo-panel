@@ -71,3 +71,7 @@ export const aiChatHistoryRelations = relations(aiChatHistory, ({ one }) => ({
     references: [users.id],
   }),
 }));
+
+// Export Todo type
+import { InferSelectModel } from "drizzle-orm";
+export type Todo = InferSelectModel<typeof todos>;
