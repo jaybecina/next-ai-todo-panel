@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { InvoiceTutorial } from "@/components/tutorial/todo-ai-tutorial";
 import { TodoAreaChart } from "@/components/dashboard/todo-area-chart";
+import { WhatsOnYourMind } from "@/components/dashboard/whats-on-your-mind";
 import { supabase } from "@/lib/supabase/client";
 import type { User as TUser } from "@supabase/supabase-js";
 import { LogOut, User as UserIcon, FileText } from "lucide-react";
@@ -135,6 +136,7 @@ export function DashboardClient() {
                 timeRange={timeRange}
                 setTimeRange={setTimeRange}
               />
+              <WhatsOnYourMind />
             </div>
           </TabsContent>
           <TabsContent value="todos">

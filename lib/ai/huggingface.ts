@@ -10,10 +10,13 @@ export interface AIResponse {
 }
 
 export class AIService {
-  private static async generateResponse(prompt: string): Promise<string> {
+  private static async generateResponse(
+    prompt: string,
+    model: string = "gpt2"
+  ): Promise<string> {
     try {
       const response = await hf.textGeneration({
-        model: "gpt2",
+        model,
         inputs: prompt,
         parameters: {
           max_new_tokens: 200,
@@ -29,10 +32,26 @@ export class AIService {
     }
   }
 
-  private static parseUserIntent(message: string): AIResponse {
+  private static parseUserIntentTodo(
+    message: string,
+    restrict: boolean = false
+  ): AIResponse {
+    if (restrict) {
+      // If not called from a todo component, always return unknown intent
+      return {
+        action: "unknown",
+        entity: "unknown",
+        message: "Todo actions are only available in the todo component.",
+      };
+    }
     const lowerMessage = message.toLowerCase();
-    // Create todo
-    if (lowerMessage.includes("create") && lowerMessage.includes("todo")) {
+    // Remove punctuation for easier matching
+    const cleanMessage = lowerMessage.replace(/[.,:;!?]/g, "");
+
+    // Create todo (match variations)
+    if (
+      /\b(create|add|new|make)\b.*\b(todo|task|reminder)\b/.test(cleanMessage)
+    ) {
       return {
         action: "create",
         entity: "todo",
@@ -40,26 +59,23 @@ export class AIService {
           "I'll help you create a new todo. Please provide the title and description.",
       };
     }
-    // List todos
+    // List todos (match variations)
     if (
-      lowerMessage.includes("list") ||
-      lowerMessage.includes("show") ||
-      lowerMessage.includes("get")
+      /\b(list|show|get|see|display|all)\b.*\b(todo|task|reminder)s?\b/.test(
+        cleanMessage
+      )
     ) {
-      if (lowerMessage.includes("todo")) {
-        return {
-          action: "list",
-          entity: "todo",
-          message: "I'll show you all your todos.",
-        };
-      }
+      return {
+        action: "list",
+        entity: "todo",
+        message: "I'll show you all your todos.",
+      };
     }
     // Block update and delete for todos
     if (
-      (lowerMessage.includes("update") ||
-        lowerMessage.includes("edit") ||
-        lowerMessage.includes("modify")) &&
-      lowerMessage.includes("todo")
+      /\b(update|edit|modify|change)\b.*\b(todo|task|reminder)\b/.test(
+        cleanMessage
+      )
     ) {
       return {
         action: "unknown",
@@ -68,8 +84,9 @@ export class AIService {
       };
     }
     if (
-      (lowerMessage.includes("delete") || lowerMessage.includes("remove")) &&
-      lowerMessage.includes("todo")
+      /\b(delete|remove|erase|discard)\b.*\b(todo|task|reminder)\b/.test(
+        cleanMessage
+      )
     ) {
       return {
         action: "unknown",
@@ -79,8 +96,7 @@ export class AIService {
     }
     // Get specific todo
     if (
-      lowerMessage.includes("todo") &&
-      (lowerMessage.includes("get") || lowerMessage.includes("show"))
+      /\b(todo|task|reminder)\b.*\b(get|show|see|display)\b/.test(cleanMessage)
     ) {
       return {
         action: "read",
@@ -97,12 +113,31 @@ export class AIService {
     };
   }
 
-  static async processMessage(userMessage: string): Promise<AIResponse> {
-    const intent = this.parseUserIntent(userMessage);
+  private static parseUserIntentWhatsOnYourMind(message: string): AIResponse {
+    // For general chat, always reply as 'unknown' action/entity, and encourage conversation
+    return {
+      action: "unknown",
+      entity: "unknown",
+      message: "Let's chat! Feel free to share anything on your mind.",
+    };
+  }
+
+  static async processMessage(
+    userMessage: string,
+    mode: "todo" | "chat" = "chat"
+  ): Promise<AIResponse> {
+    const intent =
+      mode === "todo"
+        ? this.parseUserIntentTodo(userMessage)
+        : this.parseUserIntentWhatsOnYourMind(userMessage);
+
+    // Choose model based on mode
+    const model = mode === "todo" ? "gpt2" : "fmicrosoft/DialoGPT-small"; // Free conversational model
 
     // Generate a more natural response
     const aiResponse = await this.generateResponse(
-      `User: ${userMessage}\nAssistant: ${intent.message}`
+      `User: ${userMessage}\nAssistant: ${intent.message}`,
+      model
     );
 
     return {

@@ -87,7 +87,7 @@ export class TodoService {
       };
     }
 
-    const aiResponse = await AIService.processMessage(message);
+    const aiResponse = await AIService.processMessage(message, "todo");
     // Save chat history
     await db.insert(aiChatHistory).values({
       userId,
